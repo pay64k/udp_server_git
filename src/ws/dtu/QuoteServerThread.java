@@ -15,7 +15,7 @@ public class QuoteServerThread extends Thread {
     protected boolean moreQuotes = true;
     
     //States---------------------------
-    private enum State{IDLE, WFR1};
+    private enum State{IDLE, WFR1, WFR2, STREAM};
         State currentState;
         State nextState=State.IDLE;
     //---------------------------------
@@ -25,6 +25,8 @@ public class QuoteServerThread extends Thread {
         
         byte[] buf = new byte[256];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        String reply=null;
+        String received=null;
 
     public QuoteServerThread() throws IOException {
 	this("QuoteServerThread");
@@ -53,17 +55,26 @@ public class QuoteServerThread extends Thread {
             switch(currentState){
                 case IDLE:
                     socket.receive(packet);
-                    String received = new String(packet.getData(), 0, packet.getLength());
+                    received = new String(packet.getData(), 0, packet.getLength());
                     System.out.println("Recieved data: " + received);
                     
                     if(received.equals("REQUEST:")){
+                        timer.reset();
                         System.out.println("Change state to WFR1!");
                         nextState=State.WFR1;
+                        
+                        SendPacket("pkt_amount:10",packet);
                     }
                     break;
                     
                 case WFR1:
                     System.out.println("In state WFR1!");
+                    socket.receive(packet);
+                    received = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("Recieved data: " + received); 
+                    if (received.equals("isNAK")) {
+                        
+                    }
                     nextState=State.IDLE;
                     System.out.println("Back to IDLE");
                     break;
@@ -126,4 +137,17 @@ public class QuoteServerThread extends Thread {
         }
     }
    }
+    public void SendPacket(String data, DatagramPacket packet){
+        try {
+            
+            buf = data.getBytes();
+            // send the response to the client at "address" and "port"
+            InetAddress address = packet.getAddress();
+            int port = packet.getPort();
+            packet = new DatagramPacket(buf, buf.length, address, port);
+            socket.send(packet);
+        } catch (IOException ex) {
+            Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }
