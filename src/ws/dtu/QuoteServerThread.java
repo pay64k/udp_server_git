@@ -108,7 +108,7 @@ public class QuoteServerThread extends Thread {
                         SendPacket(temp, packet);
                         System.out.println(temp);
                     }
-                    SendPacket("all_sent", packet);
+                    SendPacket("sent_all", packet);
                     nextState=State.WFR2;
                     break;
                     
