@@ -26,7 +26,10 @@ public class QuoteServerThread extends Thread {
     }
 
     public void run() {
-
+        //setup timer timeout in milliseconds:
+        Timer timer = new Timer(5000);
+        //start timer:
+        timer.start();
        
         
         while (moreQuotes) {
