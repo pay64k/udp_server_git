@@ -10,6 +10,10 @@ import org.omg.CORBA.portable.IDLEntity;
 
 public class QuoteServerThread extends Thread {
 
+    int seq0=0,seq1=1,seq2=2,seq3=3;
+    String data0="This ",data1="is ",data2="sample ",data3="text.";
+    int pkt_amount=4;
+    
     protected DatagramSocket socket = null;
     protected BufferedReader in = null;
     protected boolean moreQuotes = true;
@@ -22,6 +26,8 @@ public class QuoteServerThread extends Thread {
 
         //setup timer timeout in milliseconds:
         Timer timer = new Timer(10000);
+        ArrayList dataList = new ArrayList();
+        ArrayList seqList = new ArrayList();
         
         byte[] buf = new byte[256];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -63,7 +69,16 @@ public class QuoteServerThread extends Thread {
                         System.out.println("Change state to WFR1!");
                         nextState=State.WFR1;
                         
-                        SendPacket("pkt_amount:10",packet);
+                        seqList.add(seq0);
+                        seqList.add(seq1);
+                        seqList.add(seq2);
+                        seqList.add(seq3);
+                        
+                        dataList.add(data0);
+                        dataList.add(data1);
+                        dataList.add(data2);
+                        dataList.add(data3);
+                        SendPacket("pkt_amount:"+pkt_amount,packet);
                     }
                     break;
                     
@@ -73,10 +88,31 @@ public class QuoteServerThread extends Thread {
                     received = new String(packet.getData(), 0, packet.getLength());
                     System.out.println("Recieved data: " + received); 
                     if (received.equals("isNAK")) {
-                        
+                       SendPacket("pkt_amount:"+pkt_amount,packet);
+                       timer.reset();
                     }
-                    nextState=State.IDLE;
-                    System.out.println("Back to IDLE");
+                    else if (received.equals("ACK")) {
+                        nextState=State.STREAM;
+                        System.out.println("STREAMING");
+                        timer.reset();
+                    }
+                    
+                    break;
+                    
+                case STREAM:
+                    for (int i = 0; i < pkt_amount; i++) {
+                        String temp = "|";
+                        temp = temp.concat(seqList.get(i).toString());
+                        temp = temp.concat("|");
+                        temp = temp.concat(dataList.get(i).toString());
+                        SendPacket(temp, packet);
+                        System.out.println(temp);
+                    }
+                    SendPacket("all_sent", packet);
+                    nextState=State.WFR2;
+                    break;
+                    
+                case WFR2:
                     break;
                     
                 default:
@@ -139,7 +175,7 @@ public class QuoteServerThread extends Thread {
    }
     public void SendPacket(String data, DatagramPacket packet){
         try {
-            
+            buf = new byte[256];
             buf = data.getBytes();
             // send the response to the client at "address" and "port"
             InetAddress address = packet.getAddress();
