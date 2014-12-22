@@ -3,12 +3,28 @@ package ws.dtu;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.lang.Object;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.omg.CORBA.portable.IDLEntity;
 
 public class QuoteServerThread extends Thread {
 
     protected DatagramSocket socket = null;
     protected BufferedReader in = null;
     protected boolean moreQuotes = true;
+    
+    //States---------------------------
+    private enum State{IDLE, WFR1};
+        State currentState;
+        State nextState=State.IDLE;
+    //---------------------------------
+
+        //setup timer timeout in milliseconds:
+        Timer timer = new Timer(10000);
+        
+        byte[] buf = new byte[256];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
     public QuoteServerThread() throws IOException {
 	this("QuoteServerThread");
@@ -17,7 +33,7 @@ public class QuoteServerThread extends Thread {
     public QuoteServerThread(String name) throws IOException {
         super(name);
         socket = new DatagramSocket(4445);
-
+                
         try {
             in = new BufferedReader(new FileReader("one-liners.txt"));
         } catch (FileNotFoundException e) {
@@ -26,13 +42,38 @@ public class QuoteServerThread extends Thread {
     }
 
     public void run() {
-        //setup timer timeout in milliseconds:
-        Timer timer = new Timer(5000);
-        //start timer:
-        timer.start();
-       
-        
-        while (moreQuotes) {
+         //start timer:
+           timer.start();
+    while(true){
+        try {
+           
+            
+            currentState=nextState;
+            
+            switch(currentState){
+                case IDLE:
+                    socket.receive(packet);
+                    String received = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("Recieved data: " + received);
+                    
+                    if(received.equals("REQUEST:")){
+                        System.out.println("Change state to WFR1!");
+                        nextState=State.WFR1;
+                    }
+                    break;
+                    
+                case WFR1:
+                    System.out.println("In state WFR1!");
+                    nextState=State.IDLE;
+                    System.out.println("Back to IDLE");
+                    break;
+                    
+                default:
+                    nextState=currentState;
+                    break;
+            }
+            
+/*        while (moreQuotes) {
             try {
                 byte[] buf = new byte[256];
 
@@ -79,5 +120,10 @@ public class QuoteServerThread extends Thread {
             returnValue = "IOException occurred in server.";
         }
         return returnValue;
+*/
+        } catch (IOException ex) {
+            Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
+   }
 }
