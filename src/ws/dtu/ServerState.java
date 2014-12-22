@@ -21,6 +21,30 @@ public enum ServerState  {
             return FAIL;
         }
     },
+    //Wait For Reply 1
+    WFR1{
+        @Override
+        public ServerState next(String message) {
+            
+            return FAIL;
+        }
+    },
+     //Wait For Reply 2
+     WFR2{
+        @Override
+        public ServerState next(String message) {
+            
+            return FAIL;
+        }
+    },
+     //Wait For Reply 2
+     STREAM{
+        @Override
+        public ServerState next(String message) {
+            
+            return FAIL;
+        }
+    },
     FAIL {
         @Override
         public ServerState next(String message) {
