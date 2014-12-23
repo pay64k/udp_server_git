@@ -12,7 +12,7 @@ public class QuoteServerThread extends Thread {
 
     int seq0=0,seq1=1,seq2=2,seq3=3;
     String data0="This ",data1="is ",data2="sample ",data3="text.";
-    int pkt_amount=4;
+    int pkt_amount=3;
     
     protected DatagramSocket socket = null;
     protected BufferedReader in = null;
