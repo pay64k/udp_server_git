@@ -3,7 +3,6 @@ package ws.dtu;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.lang.Object;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.omg.CORBA.portable.IDLEntity;
@@ -12,7 +11,9 @@ public class QuoteServerThread extends Thread {
 
     int seq0=0,seq1=1,seq2=2,seq3=3;
     String data0="This ",data1="is ",data2="sample ",data3="text.";
-    int pkt_amount=3;
+    int pkt_amount=4;
+    
+    Map<Integer,String> map = new TreeMap<Integer, String>();
     
     protected DatagramSocket socket = null;
     protected BufferedReader in = null;
@@ -25,9 +26,11 @@ public class QuoteServerThread extends Thread {
     //---------------------------------
 
         //setup timer timeout in milliseconds:
-        Timer timer = new Timer(10000);
+        Timer timer = new Timer(30000);
         ArrayList dataList = new ArrayList();
         ArrayList seqList = new ArrayList();
+        
+        ArrayList pkts_num_to_send = new ArrayList();
         
         byte[] buf = new byte[256];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -65,19 +68,13 @@ public class QuoteServerThread extends Thread {
                     System.out.println("Recieved data: " + received);
                     
                     if(received.equals("REQUEST:")){
+                        
                         timer.reset();
                         System.out.println("Change state to WFR1!");
                         nextState=State.WFR1;
                         
-                        seqList.add(seq0);
-                        seqList.add(seq1);
-                        seqList.add(seq2);
-                        seqList.add(seq3);
-                        
-                        dataList.add(data0);
-                        dataList.add(data1);
-                        dataList.add(data2);
-                        dataList.add(data3);
+                        map = PrepareFile();
+
                         SendPacket("pkt_amount:"+pkt_amount,packet);
                     }
                     break;
@@ -93,6 +90,14 @@ public class QuoteServerThread extends Thread {
                     }
                     else if (received.equals("ACK")) {
                         nextState=State.STREAM;
+                        //send all pkts in the first try:
+                        int ii=0;
+                        for(Map.Entry<Integer,String> entry : map.entrySet()) {
+                              //System.out.println(entry.getKey() + " => " + entry.getValue());
+                             pkts_num_to_send.add(entry.getKey());
+                             System.out.println("Pkt_num to send: " + pkts_num_to_send.get(ii));
+                             ii++;
+                        }
                         System.out.println("STREAMING");
                         timer.reset();
                     }
@@ -100,19 +105,45 @@ public class QuoteServerThread extends Thread {
                     break;
                     
                 case STREAM:
-                    for (int i = 0; i < pkt_amount; i++) {
-                        String temp = "|";
-                        temp = temp.concat(seqList.get(i).toString());
-                        temp = temp.concat("|");
-                        temp = temp.concat(dataList.get(i).toString());
-                        SendPacket(temp, packet);
-                        System.out.println(temp);
-                    }
+//                    for (int i = 0; i < pkt_amount; i++) {
+//                        String temp = "|";
+//                        temp = temp.concat(String.valueOf(i));
+//                        //temp = temp.concat(seqList.get(i).toString());
+//                        temp = temp.concat("|");
+//                        temp = temp.concat(map.get(i));
+//                        //temp = temp.concat(dataList.get(i).toString());
+//                        SendPacket(temp, packet);
+//                        System.out.println(temp);
+//                    }
+                    
+                    SendStream(map, pkts_num_to_send);
+                    
                     SendPacket("sent_all", packet);
+                    pkts_num_to_send.clear();
                     nextState=State.WFR2;
                     break;
                     
                 case WFR2:
+                    //clear missing pkts array:
+                    
+                    socket.receive(packet);
+                    timer.reset();
+                    received = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("Recieved: " + received);
+                    if (received.contains("END")) {
+                        SendPacket("ACK", packet);
+                        System.out.println("WFR2 -> STREAM");
+                        nextState=State.STREAM;
+                    }
+                    else if(received.contains("got_all_pkts")){
+                        System.out.println("no_more_to_send!");
+                        nextState=State.IDLE;
+                    }
+                    else{
+                        //store missing pkt_num
+                        System.out.println("Missing pkt: "+received);
+                        pkts_num_to_send.add(received);
+                    }
                     break;
                     
                 default:
@@ -120,54 +151,7 @@ public class QuoteServerThread extends Thread {
                     break;
             }
             
-/*        while (moreQuotes) {
-            try {
-                byte[] buf = new byte[256];
 
-                // receive request
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                System.out.println("Request from: " + packet.getAddress().toString());
-                
-                String received = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Recieved data: " + received);
-
-                // figure out response
-                String dString = null;
-                if (in == null)
-                    dString = new Date().toString();
-                else
-                    dString = getNextQuote();
-
-                System.err.println("Sending: " + dString);
-                buf = dString.getBytes();
-                
-		// send the response to the client at "address" and "port"
-                InetAddress address = packet.getAddress();
-                int port = packet.getPort();
-                packet = new DatagramPacket(buf, buf.length, address, port);
-                socket.send(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-		moreQuotes = false;
-            }
-        }
-        socket.close();
-    }
-
-    protected String getNextQuote() {
-        String returnValue = null;
-        try {
-            if ((returnValue = in.readLine()) == null) {
-                in.close();
-		moreQuotes = false;
-                returnValue = "No more quotes. Goodbye.";
-            }
-        } catch (IOException e) {
-            returnValue = "IOException occurred in server.";
-        }
-        return returnValue;
-*/
         } catch (IOException ex) {
             Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -184,6 +168,33 @@ public class QuoteServerThread extends Thread {
             socket.send(packet);
         } catch (IOException ex) {
             Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public Map PrepareFile(){
+        Map<Integer,String> file_map = new TreeMap<Integer, String>();
+        file_map.put(0, "This ");
+        file_map.put(1, "is ");
+        file_map.put(2, "sample ");
+        file_map.put(3, "text.");
+      
+        return file_map;
+    }
+    
+    public void SendStream(Map map,ArrayList missing_pkt_num){
+        for (int i = 0; i < missing_pkt_num.size(); i++) {//!!!!remove -1 - its for testing
+        String temp = "|";
+        temp = temp.concat(missing_pkt_num.get(i).toString());
+        //temp = temp.concat(seqList.get(i).toString());
+        temp = temp.concat("|");
+        int missing_num=Integer.parseInt(missing_pkt_num.get(i).toString());
+            System.out.println("Converted missing int: "+missing_num);
+        temp = temp.concat(map.get(missing_num).toString());
+        //temp = temp.concat(dataList.get(i).toString());
+        SendPacket(temp, packet);
+        System.out.println("Sending: " + temp);
+        
+        
         }
     }
 }
