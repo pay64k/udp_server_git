@@ -7,11 +7,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.omg.CORBA.portable.IDLEntity;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+
 public class QuoteServerThread extends Thread {
 
     int seq0=0,seq1=1,seq2=2,seq3=3;
     String data0="This ",data1="is ",data2="sample ",data3="text.";
     int pkt_amount=4;
+    
+    
     
     Map<Integer,String> map = new TreeMap<Integer, String>();
     
@@ -20,9 +26,9 @@ public class QuoteServerThread extends Thread {
     protected boolean moreQuotes = true;
     
     //States---------------------------
-    private enum State{IDLE, WFR1, WFR2, STREAM};
+    private enum State{IDLE, WFR1, WFR2, STREAM, TEST};
         State currentState;
-        State nextState=State.IDLE;
+        State nextState=State.TEST;//---------IDLE be default
     //---------------------------------
 
         //setup timer timeout in milliseconds:
@@ -44,12 +50,12 @@ public class QuoteServerThread extends Thread {
     public QuoteServerThread(String name) throws IOException {
         super(name);
         socket = new DatagramSocket(4445);
-                
-        try {
-            in = new BufferedReader(new FileReader("one-liners.txt"));
-        } catch (FileNotFoundException e) {
-            System.err.println("Could not open quote file. Serving time instead.");
-        }
+        System.err.println("Server running!");
+//        try {
+//            in = new BufferedReader(new FileReader("one-liners.txt"));
+//        } catch (FileNotFoundException e) {
+//            System.err.println("Could not open quote file. Serving time instead.");
+//        }
     }
 
     public void run() {
@@ -74,7 +80,8 @@ public class QuoteServerThread extends Thread {
                         timer.reset();
                         //System.out.println("Change state to WFR1!");
                                              
-                        map = PrepareFile();
+                        //map = PrepareFile();
+                        map = PrepareAnyFile(ReadFile(), 8);
 
                         SendPacket("pkt_amount:"+pkt_amount,packet);
                         System.out.println("Sending pkt_amount..");
@@ -162,6 +169,20 @@ public class QuoteServerThread extends Thread {
                     }
                     break;
                     
+                case TEST:
+                    //read file:
+                    byte[] file = ReadFile();
+                    
+                    PrepareAnyFile(ReadFile(),8);
+                    //print bytes:
+                    //System.out.println(Arrays.toString(file));
+                    //convert to readable characters:
+                    String testString = new String(file);
+                    //print them:
+                    //System.out.println(1151%8);
+                    nextState=State.IDLE;
+                    System.exit(1);
+                    break;
                 default:
                     nextState=currentState;
                     break;
@@ -189,6 +210,7 @@ public class QuoteServerThread extends Thread {
     
     public Map PrepareFile(){
         Map<Integer,String> file_map = new TreeMap<Integer, String>();
+        
         file_map.put(0, "This ");
         file_map.put(1, "is ");
         file_map.put(2, "sample ");
@@ -197,8 +219,70 @@ public class QuoteServerThread extends Thread {
         return file_map;
     }
     
+    public Map PrepareAnyFile(byte [] byte_array, int packet_lenght){
+        System.out.println("Array size: " + byte_array.length);
+        //See if byte array is dividable by 8:
+        int array_length = byte_array.length;
+        int modulo = array_length % packet_lenght;
+        if (modulo==0) {
+            System.out.println("Dividable by 8!");
+                            
+                Map<Integer,String> file_map = new TreeMap<Integer, String>();
+    
+                return file_map;
+        }
+        else{
+            System.out.println("Not dividable by 8!, modulo: "+ modulo);
+            int zeros_amount = packet_lenght - modulo;
+            //new longer array:
+            byte [] new_array = new byte[byte_array.length+zeros_amount];
+            //copy old array into new longer array:          
+            System.arraycopy(byte_array, 0, new_array, 0, byte_array.length);
+            //pad characters:
+            for (int i = array_length; i < new_array.length; i++) {
+                new_array[i]='0';
+            }
+            System.out.println("Padded array lenght: " + new_array.length);
+            //System.out.println(new String(new_array));
+            //convert to 8 bytes Strings:
+            Map<Integer,String> file_map = new TreeMap<Integer, String>();
+                        
+                for(int i=0; i < new_array.length/8; i++)
+                {
+                    byte[] result = new byte[8];
+                    for(int j=0; j<8; j++){
+                        result[j] = byte_array[8*i+j];
+                        }               
+                
+                    file_map.put(i, new String(result));
+                    System.out.print(new String(result));
+                
+                    
+                
+                }
+                System.out.println("Map size: " + file_map.size());
+                pkt_amount=file_map.size();
+                return file_map;
+                }
+    }
+    
+    public byte[] ReadFile(){
+        Path path = Paths.get("C:/testJava/test.txt");
+        try {
+            byte[] data = Files.readAllBytes(path);
+            return data;
+        } catch (IOException ex) {
+            Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            
+            System.exit(1);
+            return null;
+        }
+    }
+    
     public void SendStream(Map map,ArrayList missing_pkt_num){
+        
         for (int i = 0; i < missing_pkt_num.size(); i++) {//!!!!remove -1 - its for testing
+            
         String temp = "|";
         temp = temp.concat(missing_pkt_num.get(i).toString());
         //temp = temp.concat(seqList.get(i).toString());
