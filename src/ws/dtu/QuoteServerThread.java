@@ -236,6 +236,7 @@ public class QuoteServerThread extends Thread {
                 
                 try {
                     file_map.put(i, new String(result, "UTF-8"));
+                    timer.reset();
                     //System.out.print(new String(result));
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
@@ -270,6 +271,7 @@ public class QuoteServerThread extends Thread {
                 
                 try {
                     file_map.put(i, new String(result, "UTF-8"));
+                    timer.reset();
                     //System.out.print(new String(result));
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
