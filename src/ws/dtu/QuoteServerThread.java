@@ -225,13 +225,13 @@ public class QuoteServerThread extends Thread {
         int array_length = byte_array.length;
         int modulo = array_length % packet_lenght;
         if (modulo==0) {
-            System.out.println("Dividable by 8!");
+            System.out.println("Dividable by " + packet_lenght);
             Map<Integer,String> file_map = new TreeMap<Integer, String>();  
-            for(int i=0; i < byte_array.length/8; i++)
+            for(int i=0; i < byte_array.length/packet_lenght; i++)
                 {
-                    byte[] result = new byte[8];
-                    for(int j=0; j<8; j++){
-                        result[j] = byte_array[8*i+j];
+                    byte[] result = new byte[packet_lenght];
+                    for(int j=0; j<packet_lenght; j++){
+                        result[j] = byte_array[packet_lenght*i+j];
                         }               
                 
                 try {
@@ -246,7 +246,7 @@ public class QuoteServerThread extends Thread {
                 return file_map;
         }
         else{
-            System.out.println("Not dividable by 8!, modulo: "+ modulo);
+            System.out.println("Not dividable by "+ packet_lenght+ " , modulo: "+ modulo);
             int zeros_amount = packet_lenght - modulo;
             //new longer array:
             byte [] new_array = new byte[byte_array.length+zeros_amount];
@@ -261,11 +261,11 @@ public class QuoteServerThread extends Thread {
             //convert to 8 bytes Strings:
             Map<Integer,String> file_map = new TreeMap<Integer, String>();
                         
-                for(int i=0; i < new_array.length/8; i++)
+                for(int i=0; i < new_array.length/packet_lenght; i++)
                 {
-                    byte[] result = new byte[8];
-                    for(int j=0; j<8; j++){
-                        result[j] = new_array[8*i+j];
+                    byte[] result = new byte[packet_lenght];
+                    for(int j=0; j<packet_lenght; j++){
+                        result[j] = new_array[packet_lenght*i+j];
                         }               
                 
                 try {
