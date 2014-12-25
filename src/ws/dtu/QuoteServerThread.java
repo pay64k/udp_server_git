@@ -28,7 +28,7 @@ public class QuoteServerThread extends Thread {
     //States---------------------------
     private enum State{IDLE, WFR1, WFR2, STREAM, TEST};
         State currentState;
-        State nextState=State.TEST;//---------IDLE be default
+        State nextState=State.IDLE;//---------IDLE be default
     //---------------------------------
 
         //setup timer timeout in milliseconds:
@@ -226,9 +226,23 @@ public class QuoteServerThread extends Thread {
         int modulo = array_length % packet_lenght;
         if (modulo==0) {
             System.out.println("Dividable by 8!");
-                            
-                Map<Integer,String> file_map = new TreeMap<Integer, String>();
-    
+            Map<Integer,String> file_map = new TreeMap<Integer, String>();  
+            for(int i=0; i < byte_array.length/8; i++)
+                {
+                    byte[] result = new byte[8];
+                    for(int j=0; j<8; j++){
+                        result[j] = byte_array[8*i+j];
+                        }               
+                
+                try {
+                    file_map.put(i, new String(result, "UTF-8"));
+                    //System.out.print(new String(result));
+                } catch (UnsupportedEncodingException ex) {
+                    Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                }
+                System.out.println("Map size: " + file_map.size());
+                pkt_amount=file_map.size();
                 return file_map;
         }
         else{
@@ -240,7 +254,7 @@ public class QuoteServerThread extends Thread {
             System.arraycopy(byte_array, 0, new_array, 0, byte_array.length);
             //pad characters:
             for (int i = array_length; i < new_array.length; i++) {
-                new_array[i]='0';
+                new_array[i]=0x00;
             }
             System.out.println("Padded array lenght: " + new_array.length);
             //System.out.println(new String(new_array));
@@ -251,13 +265,15 @@ public class QuoteServerThread extends Thread {
                 {
                     byte[] result = new byte[8];
                     for(int j=0; j<8; j++){
-                        result[j] = byte_array[8*i+j];
+                        result[j] = new_array[8*i+j];
                         }               
                 
-                    file_map.put(i, new String(result));
-                    System.out.print(new String(result));
-                
-                    
+                try {
+                    file_map.put(i, new String(result, "UTF-8"));
+                    //System.out.print(new String(result));
+                } catch (UnsupportedEncodingException ex) {
+                    Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 
                 }
                 System.out.println("Map size: " + file_map.size());
