@@ -69,11 +69,11 @@ public class QuoteServerThread extends Thread {
             
             switch(currentState){
                 case IDLE:
-                    System.out.println("In State IDlE");
+                   // System.out.println("In State IDlE");
                     socket.receive(packet);
                     timer.reset();
                     received = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("Recieved data: " + received);
+                    //System.out.println("Recieved data: " + received);
                     
                     if(received.equals("REQUEST:")){
                         
@@ -81,23 +81,23 @@ public class QuoteServerThread extends Thread {
                         //System.out.println("Change state to WFR1!");
                                              
                         //map = PrepareFile();
-                        map = PrepareAnyFile(ReadFile(), 8);
+                        map = PrepareAnyFile(ReadFile(), 32);
 
                         SendPacket("pkt_amount:"+pkt_amount,packet);
-                        System.out.println("Sending pkt_amount..");
+                       // System.out.println("Sending pkt_amount..");
                         nextState=State.WFR1;
                     }
 
                     break;
                     
                 case WFR1:
-                    System.out.println("In state WFR1!");
+                    //System.out.println("In state WFR1!");
                     socket.receive(packet);
                     received = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("Recieved data: " + received); 
+                    //System.out.println("Recieved data: " + received); 
                     if (received.equals("REQUEST:")) {
                        SendPacket("pkt_amount:"+pkt_amount,packet);
-                        System.out.println("Sending pkt_amount..");
+                        //System.out.println("Sending pkt_amount..");
                        timer.reset();
                     }
                     else if (received.equals("ACK")) {
@@ -107,7 +107,7 @@ public class QuoteServerThread extends Thread {
                         for(Map.Entry<Integer,String> entry : map.entrySet()) {
                               //System.out.println(entry.getKey() + " => " + entry.getValue());
                              pkts_num_to_send.add(entry.getKey());
-                             System.out.println("Pkt_num to send: " + pkts_num_to_send.get(ii));
+                             //System.out.println("Pkt_num to send: " + pkts_num_to_send.get(ii));
                              ii++;
                         }
                         //System.out.println("STREAMING");
@@ -123,11 +123,11 @@ public class QuoteServerThread extends Thread {
                     break;
                     
                 case STREAM:
-                    System.out.println("In State STREAM");
+                    //System.out.println("In State STREAM");
                    
                     SendStream(map, pkts_num_to_send);
                     
-                    System.out.println("Sending: sent_all");
+                    //System.out.println("Sending: sent_all");
                     SendPacket("sent_all", packet);
                      //clear missing pkts array:
                     pkts_num_to_send.clear();
@@ -135,33 +135,36 @@ public class QuoteServerThread extends Thread {
                     break;
                     
                 case WFR2:
-                    System.out.println("In State WFR2");
+                    //System.out.println("In State WFR2");
                     
                     socket.receive(packet);
                     timer.reset();
                     received = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("Recieved: " + received);
+                   //System.out.println("Recieved: " + received);
                     if (received.contains("END")) {
                         SendPacket("ACK", packet);
-                        System.out.println("WFR2 -> STREAM");
+                       // System.out.println("WFR2 -> STREAM");
                         nextState=State.STREAM;
                     }
                     else if(received.contains("got_all_pkts")){
-                        System.out.println("no_more_to_send!");
+                        //System.out.println("no_more_to_send!");
                         nextState=State.IDLE;
                     }
                     else if (received.contains("is_all_sent?")) {
-                        System.out.println("Sending: sent_all");
+                       // System.out.println("Sending: sent_all");
                         SendPacket("sent_all", packet);
                     }
                     else if(received.equals("ACK")){
                         nextState=State.STREAM;
                     }
+                    else if (received.contains("REQUEST:")) {
+                        
+                    }
                     else{
                         //store missing pkt_num
-                        System.out.println("Missing pkt: "+received);
+                        //System.out.println("Missing pkt: "+received);
                         if(pkts_num_to_send.contains(received)){
-                            System.out.println("Already stored missing pkt nr: " + received);
+                            //System.out.println("Already stored missing pkt nr: " + received);
                         }
                         else{
                         pkts_num_to_send.add(received);
@@ -278,7 +281,7 @@ public class QuoteServerThread extends Thread {
                 }
                 
                 }
-                System.out.println("Map size: " + file_map.size());
+                //System.out.println("Map size: " + file_map.size());
                 pkt_amount=file_map.size();
                 return file_map;
                 }
@@ -310,7 +313,7 @@ public class QuoteServerThread extends Thread {
         temp = temp.concat(map.get(missing_num).toString());
         //temp = temp.concat(dataList.get(i).toString());
         SendPacket(temp, packet);
-        System.out.println("Sending: " + temp);
+        //System.out.println("Sending: " + temp);
         
         
         }
