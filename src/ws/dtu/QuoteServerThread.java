@@ -28,7 +28,7 @@ public class QuoteServerThread extends Thread {
     //States---------------------------
     private enum State{IDLE, WFR1, WFR2, STREAM, TEST};
         State currentState;
-        State nextState=State.TEST;//---------IDLE be default
+        State nextState=State.IDLE;//---------IDLE be default
     //---------------------------------
 
         //setup timer timeout in milliseconds:
@@ -45,6 +45,8 @@ public class QuoteServerThread extends Thread {
         String received=null;
         String temp=null;
         int missing_num=0;
+        
+        int send_packet_size = 2048;
 
     public QuoteServerThread() throws IOException {
 	this("QuoteServerThread");
@@ -84,7 +86,7 @@ public class QuoteServerThread extends Thread {
                         //System.out.println("Change state to WFR1!");
                                              
                         //map = PrepareFile();
-                        map = PrepareAnyFile(ReadFile(), 16);
+                        map = PrepareAnyFile(ReadFile(), send_packet_size);
 
                         SendPacket("pkt_amount:"+pkt_amount,packet);
                        // System.out.println("Sending pkt_amount..");
@@ -186,9 +188,9 @@ public class QuoteServerThread extends Thread {
                     //read file:
                     //byte[] file = ReadFile();
                     
-                    map = PrepareAnyFile(ReadFile(),16);
+                    map = PrepareAnyFile(ReadFile(),1024);
                     for(Map.Entry<Integer,String> entry : map.entrySet()) {
-                        System.out.println(entry.getValue());
+                        System.out.print(entry.getValue());
                     }
                     System.out.println("Lines: " + map.size());
                     //print bytes:
@@ -334,16 +336,16 @@ public class QuoteServerThread extends Thread {
         }
     }
     
-       public void SendStream2(Map map,List<Integer> missing_pkt_num){
+       public void SendStream2(Map map,List<Integer> missing_pkt_num_){
         
-        for (int i = 0; i < missing_pkt_num.size(); i++) {//!!!!remove -1 - its for testing
+        for (int i = 0; i < missing_pkt_num_.size(); i++) {//!!!!remove -1 - its for testing
             
         temp = "|";
-        temp = temp.concat(missing_pkt_num.get(i).toString());
+        temp = temp.concat(missing_pkt_num_.get(i).toString());
         //temp = temp.concat(seqList.get(i).toString());
         temp = temp.concat("|");
         //missing_num=Integer.parseInt(missing_pkt_num.get(i).toString());
-        missing_num=missing_pkt_num.get(i);
+        missing_num=missing_pkt_num_.get(i);
             //System.out.println("Converted missing int: "+missing_num);
         temp = temp.concat(map.get(missing_num).toString());
         //temp = temp.concat(dataList.get(i).toString());
