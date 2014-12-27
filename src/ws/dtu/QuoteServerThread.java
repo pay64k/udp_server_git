@@ -39,14 +39,16 @@ public class QuoteServerThread extends Thread {
         ArrayList pkts_num_to_send = new ArrayList();
         List<Integer> pkts_num_to_sendIntegers = new ArrayList();
         
-        byte[] buf = new byte[256];
+        int send_packet_size = 1024;
+        
+        byte[] buf = new byte[send_packet_size];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         String reply=null;
         String received=null;
         String temp=null;
         int missing_num=0;
         
-        int send_packet_size = 2048;
+        
 
     public QuoteServerThread() throws IOException {
 	this("QuoteServerThread");
@@ -189,10 +191,14 @@ public class QuoteServerThread extends Thread {
                     //byte[] file = ReadFile();
                     
                     map = PrepareAnyFile(ReadFile(),1024);
-                    for(Map.Entry<Integer,String> entry : map.entrySet()) {
-                        System.out.print(entry.getValue());
+                    
+                    try (PrintWriter writer = new PrintWriter("C:/testJava/result.txt", "UTF-8")) {
+                                for(Map.Entry<Integer,String> entry : map.entrySet()) {
+                                    //System.out.println(entry.getKey() + " => " + entry.getValue());
+                                    writer.print(entry.getValue());
+                                } 
+                                System.out.println("Written to file (C:/testJava/result.txt)...");
                     }
-                    System.out.println("Lines: " + map.size());
                     //print bytes:
                     //System.out.println(Arrays.toString(file));
                     //convert to readable characters:
@@ -215,7 +221,7 @@ public class QuoteServerThread extends Thread {
    }
     public void SendPacket(String data, DatagramPacket packet){
         try {
-            buf = new byte[256];
+            buf = new byte[send_packet_size];
             buf = data.getBytes();
             // send the response to the client at "address" and "port"
             InetAddress address = packet.getAddress();
