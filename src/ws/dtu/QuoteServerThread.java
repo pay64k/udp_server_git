@@ -39,7 +39,7 @@ public class QuoteServerThread extends Thread {
         ArrayList pkts_num_to_send = new ArrayList();
         List<Integer> pkts_num_to_sendIntegers = new ArrayList();
         
-        int send_packet_size = 1024;
+        int send_packet_size = 1024; //change for packet size only here!!------------------!!      
         
         byte[] buf = new byte[send_packet_size];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
