@@ -49,7 +49,7 @@ public class QuoteServerThread extends Thread {
         int missing_num=0;
         
         
-
+//latest
     public QuoteServerThread() throws IOException {
 	this("QuoteServerThread");
     }
@@ -80,7 +80,7 @@ public class QuoteServerThread extends Thread {
                     socket.receive(packet);
                     timer.reset();
                     received = new String(packet.getData(), 0, packet.getLength());
-                    //System.out.println("Recieved data: " + received);
+                    //System.out.println("Recieved: " + received);
                     
                     if(received.equals("REQUEST:")){
                         
@@ -91,7 +91,7 @@ public class QuoteServerThread extends Thread {
                         map = PrepareAnyFile(ReadFile(), send_packet_size);
 
                         SendPacket("pkt_amount:"+pkt_amount,packet);
-                       // System.out.println("Sending pkt_amount..");
+                        //System.out.println("Sending pkt_amount..");
                         nextState=State.WFR1;
                     }
 
@@ -101,10 +101,10 @@ public class QuoteServerThread extends Thread {
                     //System.out.println("In state WFR1!");
                     socket.receive(packet);
                     received = new String(packet.getData(), 0, packet.getLength());
-                    //System.out.println("Recieved data: " + received); 
+                    //System.out.println("Recieved: " + received); 
                     if (received.equals("REQUEST:")) {
                        SendPacket("pkt_amount:"+pkt_amount,packet);
-                       // System.out.println("Sending pkt_amount..");
+                       //System.out.println("Sending pkt_amount..");
                        timer.reset();
                     }
                     else if (received.equals("ACK")) {
@@ -125,6 +125,7 @@ public class QuoteServerThread extends Thread {
                     }
                     else if (received.equals("is_all_sent?")) {
                         nextState=State.STREAM;
+                        timer.reset();
                     }
 //                    else if (received.equals("is_all_sent?")) {
 //                        nextState=State.STREAM;
@@ -146,6 +147,7 @@ public class QuoteServerThread extends Thread {
                     pkts_num_to_sendIntegers.clear();
                     
                     nextState=State.WFR2;
+                    timer.reset();
                     break;
                     
                 case WFR2:
@@ -154,22 +156,25 @@ public class QuoteServerThread extends Thread {
                     socket.receive(packet);
                     timer.reset();
                     received = new String(packet.getData(), 0, packet.getLength());
-                   //System.out.println("Recieved: " + received);
+                    //System.out.println("Recieved: " + received);
                     if (received.contains("END")) {
                         SendPacket("ACK", packet);
-                       // System.out.println("WFR2 -> STREAM");
+                        //System.out.println("Sending: ACK");
                         nextState=State.STREAM;
+                        timer.reset();
                     }
                     else if(received.contains("got_all_pkts")){
                         //System.out.println("no_more_to_send!");
                         nextState=State.IDLE;
                     }
                     else if (received.contains("is_all_sent?")) {
-                       // System.out.println("Sending: sent_all");
+                        //System.out.println("Sending: sent_all");
                         SendPacket("sent_all", packet);
+                        timer.reset();
                     }
                     else if(received.equals("ACK")){
                         nextState=State.STREAM;
+                        timer.reset();
                     }
                     else if (received.contains("REQUEST:")) {
                         
@@ -183,6 +188,7 @@ public class QuoteServerThread extends Thread {
                         else{
                         pkts_num_to_sendIntegers.add(Integer.valueOf(received));
                         }
+                        timer.reset();
                     }
                     break;
                     
@@ -192,13 +198,13 @@ public class QuoteServerThread extends Thread {
                     
                     map = PrepareAnyFile(ReadFile(),1024);
                     
-                    try (PrintWriter writer = new PrintWriter("C:/testJava/result.txt", "UTF-8")) {
-                                for(Map.Entry<Integer,String> entry : map.entrySet()) {
-                                    //System.out.println(entry.getKey() + " => " + entry.getValue());
-                                    writer.print(entry.getValue());
-                                } 
-                                System.out.println("Written to file (C:/testJava/result.txt)...");
-                    }
+//                    try (PrintWriter writer = new PrintWriter("C:/testJava/result.txt", "UTF-8")) {
+//                                for(Map.Entry<Integer,String> entry : map.entrySet()) {
+//                                    //System.out.println(entry.getKey() + " => " + entry.getValue());
+//                                    writer.print(entry.getValue());
+//                                } 
+//                                System.out.println("Written to file (C:/testJava/result.txt)...");
+//                    }
                     //print bytes:
                     //System.out.println(Arrays.toString(file));
                     //convert to readable characters:
@@ -245,12 +251,12 @@ public class QuoteServerThread extends Thread {
     }
     
     public Map PrepareAnyFile(byte [] byte_array, int packet_lenght){
-        System.out.println("Array size: " + byte_array.length);
+        //System.out.println("Array size: " + byte_array.length);
         //See if byte array is dividable by 8:
         int array_length = byte_array.length;
         int modulo = array_length % packet_lenght;
         if (modulo==0) {
-            System.out.println("Dividable by " + packet_lenght);
+            //System.out.println("Dividable by " + packet_lenght);
             Map<Integer,String> file_map = new TreeMap<Integer, String>();  
             for(int i=0; i < byte_array.length/packet_lenght; i++)
                 {
@@ -267,7 +273,7 @@ public class QuoteServerThread extends Thread {
                     Logger.getLogger(QuoteServerThread.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 }
-                System.out.println("Map size: " + file_map.size());
+                //System.out.println("Map size: " + file_map.size());
                 pkt_amount=file_map.size();
                 return file_map;
         }
@@ -356,7 +362,7 @@ public class QuoteServerThread extends Thread {
         temp = temp.concat(map.get(missing_num).toString());
         //temp = temp.concat(dataList.get(i).toString());
         SendPacket(temp, packet);
-        //System.out.println("Sending: " + temp);
+        System.out.println("Sending: massage, packet nr: " + missing_num);
         
         
         }
